@@ -1,6 +1,6 @@
 ipykernel
 pandas
-numpy
+numpy<2.0
 matplotlib
 plotly
 seaborn
@@ -12,6 +12,7 @@ catboost
 pymongo
 from_root
 evidently==0.2.8
+pydantic<2
 dill
 PyYAML
 neuro_mf
