@@ -15,53 +15,52 @@ The pipeline covers everything from pulling data out of MongoDB to training a mo
 Project Structure
 
 
-visa project MLOPS/
-│
-├── USvisa/
-│   ├── components/          # Core pipeline steps
-│   │   ├── data_ingestion.py
-│   │   ├── data_validation.py
-│   │   └── data_transformation.py
-│   │
-│   ├── pipeline/
-│   │   └── training_pipeline.py   # Runs all components in order
-│   │
-│   ├── entity/
-│   │   ├── config.py        # Config dataclasses for each component
-│   │   ├── artifact.py      # Artifact dataclasses (what each step outputs)
-│   │   └── estimator.py     # Target label mapping (Certified=0, Denied=1)
-│   │
-│   ├── constants/
-│   │   └── __init__.py      # All constants in one place
-│   │
-│   ├── data_access/
-│   │   └── visa_data.py     # Connects to MongoDB and pulls data
-│   │
-│   ├── configuration/
-│   │   └── mongodb_connection.py  # MongoDB client setup
-│   │
-│   ├── utils/
-│   │   └── main_utils.py    # Helper functions (read yaml, save object, etc.)
-│   │
-│   ├── exception/           # Custom exception class
-│   └── logger/              # Logging setup
-│
-├── config/
-│   └── schema.yaml          # Column definitions, feature lists, drop columns
-│
-├── notebooks/
-│   └── MONGO.ipynb          # Used to push data into MongoDB initially
-│
-├── artifact/                # Auto-created when pipeline runs (gitignored)
-├── logs/                    # Log files (gitignored)
-│
-├── demo.py                  # Entry point to run the training pipeline
-├── app.py                   # Flask/FastAPI app for prediction (coming soon)
-├── requirements.txt
-└── setup.py
-```
+visa project MLOPS
 
----
+USvisa/
+     components/          # Core pipeline steps
+          data_ingestion.py
+          data_validation.py
+          data_transformation.py
+
+      pipeline/
+          training_pipeline.py   # Runs all components in order
+      
+      entity/
+          config.py        # Config dataclasses for each component
+          artifact.py      # Artifact dataclasses (what each step outputs)
+          estimator.py     # Target label mapping (Certified=0, Denied=1)
+      constants/
+          __init__.py      # All constants in one place
+
+      data_access/
+          visa_data.py     # Connects to MongoDB and pulls data
+
+      configuration/
+          mongodb_connection.py  # MongoDB client setup
+
+      utils/
+          main_utils.py    # Helper functions (read yaml, save object, etc.)
+
+      exception/           # Custom exception class
+      logger/              # Logging setup
+
+      config/
+          schema.yaml          # Column definitions, feature lists, drop columns
+
+      notebooks/
+          MONGO.ipynb
+          EDA.ipynb
+          FeatureEnginnering_model_training.ipynb            # Used to push data into MongoDB initially
+      
+      artifact/                # Auto-created when pipeline runs (gitignored)
+      logs/                    # Log files (gitignored)
+      demo.py                  # Entry point to run the training pipeline
+      app.py                   # Flask/FastAPI app for prediction (coming soon)
+      requirements.txt
+      setup.py
+
+
 
 Pipeline Steps
 
@@ -125,7 +124,7 @@ The pipeline will create timestamped artifact folders under `artifact/` and log 
 
 
 
-## Tech Stack
+Tech Stack
 
 What Tool 
 
