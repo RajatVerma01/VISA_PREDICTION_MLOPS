@@ -1,5 +1,6 @@
 US Visa Approval Prediction - MLOps Project
 
+
 This project predicts whether a US visa application will be Certified** or Denied based on applicant and employer information. The main goal was to build a proper end-to-end machine learning pipeline — not just a notebook experiment, but something that can actually run in a structured, repeatable way.
 
 
