@@ -222,6 +222,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 30m
           script: |
+            docker system prune -f --volumes || true
             cd VISA_PREDICTION_MLOPS
             git pull origin main
             docker build -t usvisa-predictor:latest .
@@ -231,5 +232,9 @@ jobs:
               --name usvisa-app \
               --restart always \
               -p 8000:8000 \
-              --env-file .env \
+              -e MONGODB_CONNECTION_STRING=${{ secrets.MONGODB_CONNECTION_STRING }} \
+              -e MODEL_BUCKET_NAME=${{ secrets.MODEL_BUCKET_NAME }} \
+              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+              -e AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }} \
               usvisa-predictor:latest
