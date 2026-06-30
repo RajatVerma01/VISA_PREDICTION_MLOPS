@@ -18,7 +18,7 @@ from USvisa.exception import USvisaException
 from USvisa.logger import logging
 from USvisa.utils.main_utils import load_numpy_array_data, load_object, save_object
 
-#model trainer class
+# model trainer class
 class ModelTrainer:
     def __init__(
         self,
