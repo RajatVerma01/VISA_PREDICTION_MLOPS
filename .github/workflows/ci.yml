@@ -205,3 +205,30 @@ jobs:
           name: pipeline-logs-${{ github.run_number }}
           path: logs/
           retention-days: 7
+
+  # ── 5. Continuous Deployment (CD) to EC2 ──────────────────
+  deploy:
+    name: "🚀 Deploy to EC2"
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd VISA_PREDICTION_MLOPS
+            git pull origin main
+            docker build -t usvisa-predictor:latest .
+            docker stop usvisa-app || true
+            docker rm -f usvisa-app || true
+            docker run -d \
+              --name usvisa-app \
+              --restart always \
+              -p 8000:8000 \
+              --env-file .env \
+              usvisa-predictor:latest
