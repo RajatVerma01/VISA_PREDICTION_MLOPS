@@ -33,4 +33,3 @@ mypy-boto3-s3
 python-dotenv
 
 # ── Package itself ───────────────────────────────────────────────
--e .
