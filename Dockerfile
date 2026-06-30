@@ -5,7 +5,7 @@
 # Runs as a non-root user for security best practices.
 # ================================================================
 
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # ── System dependencies ──────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \

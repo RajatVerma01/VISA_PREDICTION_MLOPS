@@ -25,7 +25,7 @@ on:
         options: ["true", "false"]
 
 env:
-  PYTHON_VERSION: "3.10"
+  PYTHON_VERSION: "3.12"
   IMAGE_NAME: usvisa-predictor
 
 # ────────────────────────────────────────────────────────────
