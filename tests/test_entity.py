@@ -22,25 +22,25 @@ CURRENT_YEAR = date.today().year
 
 
 class TestTargetValueMapping:
-    def test_certified_maps_to_zero(self):
+    def test_certified_maps_to_one(self):
         mapping = TargetValueMapping()
-        assert mapping.Certified == 0
+        assert mapping.Certified == 1
 
-    def test_denied_maps_to_one(self):
+    def test_denied_maps_to_zero(self):
         mapping = TargetValueMapping()
-        assert mapping.Denied == 1
+        assert mapping.Denied == 0
 
     def test_as_dict_returns_correct_keys(self):
         d = TargetValueMapping()._asdict()
         assert "Certified" in d
         assert "Denied" in d
-        assert d["Certified"] == 0
-        assert d["Denied"] == 1
+        assert d["Certified"] == 1
+        assert d["Denied"] == 0
 
     def test_reverse_mapping_correct(self):
         rev = TargetValueMapping().reverse_mapping()
-        assert rev[0] == "Certified"
-        assert rev[1] == "Denied"
+        assert rev[1] == "Certified"
+        assert rev[0] == "Denied"
 
 
 class TestUSvisaInputData:
