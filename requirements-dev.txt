@@ -1,0 +1,19 @@
+# Install production deps first:
+#   pip install -r requirements.txt
+# Then install dev extras:
+#   pip install -r requirements-dev.txt
+
+# ── Notebooks ────────────────────────────────────────────────────
+ipykernel
+matplotlib
+plotly
+seaborn
+scipy
+
+# ── Testing ──────────────────────────────────────────────────────
+pytest>=7.0
+pytest-cov
+pytest-mock
+
+# ── Linting ──────────────────────────────────────────────────────
+flake8

@@ -1,0 +1,206 @@
+# ============================================================
+# US Visa MLOps — CI/CD Pipeline
+# ============================================================
+# Jobs (in dependency order):
+#   lint      → flake8 on every push / PR to main
+#   sanity    → import & unit tests on every push / PR
+#   docker    → build + push Docker image on push to main
+#   train     → full training pipeline (manual trigger only)
+# ============================================================
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_training:
+        description: "Run full training pipeline?"
+        required: true
+        default: "false"
+        type: choice
+        options: ["true", "false"]
+
+env:
+  PYTHON_VERSION: "3.10"
+  IMAGE_NAME: usvisa-predictor
+
+# ────────────────────────────────────────────────────────────
+jobs:
+
+  # ── 1. Lint ───────────────────────────────────────────────
+  lint:
+    name: "🔍 Lint (flake8)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8
+        run: |
+          flake8 USvisa/ app.py \
+            --max-line-length=120 \
+            --exclude=__pycache__,*.egg-info,.git \
+            --count \
+            --statistics
+
+
+  # ── 2. Sanity + Unit Tests ────────────────────────────────
+  sanity:
+    name: "✅ Tests (pytest)"
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Check all key imports resolve
+        run: |
+          python -c "
+          from USvisa.constants import *
+          from USvisa.entity.config import (
+              DataIngestionConfig, DataValidationConfig,
+              DataTransformationConfig, ModelTrainerConfig,
+              ModelEvaluationConfig, ModelPusherConfig,
+          )
+          from USvisa.entity.artifact import (
+              DataIngestionArtifact, DataValidationArtifact,
+              DataTransformationArtifact, ModelTrainerArtifact,
+              ModelEvaluationArtifact, ModelPusherArtifact,
+          )
+          from USvisa.entity.estimator import USvisaModel, TargetValueMapping
+          from USvisa.pipeline.training_pipeline import TrainPipeline
+          from USvisa.pipeline.prediction_pipeline import PredictionPipeline, USvisaInputData
+          from USvisa.components.model_pusher import ModelPusher
+          print('All imports successful ✓')
+          "
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest tests/ -v \
+            --cov=USvisa \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            -x
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 7
+
+
+  # ── 3. Docker Build + Push (main only) ────────────────────
+  docker:
+    name: "🐳 Docker Build & Push"
+    runs-on: ubuntu-latest
+    needs: sanity
+    # Only push image on actual push to main (not PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
+  # ── 4. Full Training Pipeline (manual only) ───────────────
+  train:
+    name: "🚀 Train Pipeline (manual)"
+    runs-on: ubuntu-latest
+    needs: sanity
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_training == 'true'
+
+    env:
+      MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
+      MODEL_BUCKET_NAME: ${{ secrets.MODEL_BUCKET_NAME }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate secrets are set
+        run: |
+          if [ -z "$MONGODB_CONNECTION_STRING" ]; then
+            echo "ERROR: MONGODB_CONNECTION_STRING secret not set."
+            exit 1
+          fi
+          echo "Secrets validated ✓"
+
+      - name: Run training pipeline
+        run: python demo.py
+
+      - name: Upload trained model
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trained-model-${{ github.run_number }}
+          path: saved_models/
+          retention-days: 30
+
+      - name: Upload pipeline logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-logs-${{ github.run_number }}
+          path: logs/
+          retention-days: 7

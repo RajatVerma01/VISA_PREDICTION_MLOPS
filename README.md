@@ -1,161 +1,242 @@
-US Visa Approval Prediction - MLOps Project
+# 🇺🇸 US Visa Approval Prediction — MLOps Project
 
+A **production-grade, end-to-end MLOps pipeline** that predicts whether a US visa application will be **Certified** or **Denied**, based on applicant and employer information. The main goal was to build a proper end-to-end machine learning pipeline — not just a notebook experiment, but something that can actually run in a structured, repeatable way.
 
-This project predicts whether a US visa application will be Certified** or Denied based on applicant and employer information. The main goal was to build a proper end-to-end machine learning pipeline — not just a notebook experiment, but something that can actually run in a structured, repeatable way.
+---
 
+## 🏗️ Architecture
 
+```
+MongoDB Atlas
+     ↓
+[1] DataIngestion      → exports CSV, 80/20 split
+     ↓
+[2] DataValidation     → schema check + Evidently drift detection
+     ↓
+[3] DataTransformation → feature engineering, encoding, SMOTEENN (train only)
+     ↓
+[4] ModelTrainer       → KNN / RandomForest / GradientBoosting + MLflow tracking
+     ↓
+[5] ModelEvaluation    → compares vs. best model (threshold: ΔF1 ≥ 0.02)
+     ↓
+[6] ModelPusher        → saves to saved_models/ + optional S3 upload
+     ↓
+FastAPI App            → /predict (form) | /api/v1/predict (JSON) | /monitor
+```
 
-What this project does?
+---
 
-Given details like education of the employee, number of employees in the company, prevailing wage, continent, region of employment, etc., the model predicts the visa case status.
+## 📂 Project Structure
 
-The pipeline covers everything from pulling data out of MongoDB to training a model — with proper logging, exception handling, and artifact management at each step.
+```
+visa project MLOPS/
+├── USvisa/
+│   ├── components/           # 6 pipeline stage components
+│   │   ├── data_ingestion.py
+│   │   ├── data_validation.py
+│   │   ├── data_transformation.py
+│   │   ├── model_trainer.py      # + MLflow tracking
+│   │   ├── model_evaluation.py
+│   │   └── model_pusher.py       # saves to saved_models/ + S3
+│   ├── pipeline/
+│   │   ├── training_pipeline.py  # orchestrates all 6 stages
+│   │   └── prediction_pipeline.py
+│   ├── entity/
+│   │   ├── config.py             # typed dataclass configs
+│   │   ├── artifact.py           # typed dataclass artifacts
+│   │   └── estimator.py          # USvisaModel + TargetValueMapping
+│   ├── constants/                # centralized constants
+│   ├── data_access/              # MongoDB → DataFrame
+│   ├── configuration/            # MongoDB connection singleton
+│   ├── utils/                    # YAML, pickle, numpy helpers
+│   ├── exception/                # custom exception (file + line)
+│   └── logger/                   # timestamped file logging
+├── tests/                        # pytest unit tests
+│   ├── test_utils.py
+│   ├── test_entity.py
+│   └── test_pipeline.py
+├── config/
+│   └── schema.yaml               # feature schema, drop columns, encoders
+├── notebooks/
+│   ├── EDA.ipynb
+│   ├── Feature_eng.ipynb
+│   └── MONGO.ipynb
+├── .github/workflows/ci.yml      # lint → tests → docker build → train
+├── app.py                        # FastAPI app
+├── templates/index.html          # prediction UI
+├── demo.py                       # run training pipeline
+├── Dockerfile
+├── Makefile
+├── requirements.txt              # production deps
+├── requirements-dev.txt          # dev/test/notebook deps
+└── .env.example                  # env variable template
+```
 
+---
 
+## 🚀 Quick Start
 
-Project Structure
+### Prerequisites
+- Python 3.10+
+- MongoDB Atlas account (connection string in `.env`)
+- Docker (optional, for containerized deployment)
 
+### 1 — Clone and setup
 
-visa project MLOPS
+```bash
+git clone https://github.com/RajatVerma01/VISA_PREDICTION_MLOPS.git
+cd "visa project MLOPS"
 
-USvisa/
-     components/          # Core pipeline steps
-          data_ingestion.py
-          data_validation.py
-          data_transformation.py
+# Copy environment template
+cp .env.example .env
+# → Fill in MONGODB_CONNECTION_STRING in .env
+```
 
-      pipeline/
-          training_pipeline.py   # Runs all components in order
-      
-      entity/
-          config.py        # Config dataclasses for each component
-          artifact.py      # Artifact dataclasses (what each step outputs)
-          estimator.py     # Target label mapping (Certified=0, Denied=1)
-      constants/
-          __init__.py      # All constants in one place
+### 2 — Install dependencies
 
-      data_access/
-          visa_data.py     # Connects to MongoDB and pulls data
+```bash
+make install          # production deps only
+make install-dev      # + dev / test / notebook deps
+```
 
-      configuration/
-          mongodb_connection.py  # MongoDB client setup
+### 3 — Train the model
 
-      utils/
-          main_utils.py    # Helper functions (read yaml, save object, etc.)
+```bash
+make train
+# Artifacts saved under artifact/<timestamp>/
+# Accepted model copied to saved_models/model.pkl
+```
 
-      exception/           # Custom exception class
-      logger/              # Logging setup
+### 4 — Start the web app
 
-      config/
-          schema.yaml          # Column definitions, feature lists, drop columns
+```bash
+make serve
+# → http://localhost:8000        (prediction form)
+# → http://localhost:8000/docs   (Swagger API docs)
+# → http://localhost:8000/health (liveness probe)
+# → http://localhost:8000/monitor (drift report)
+```
 
-      notebooks/
-          MONGO.ipynb
-          EDA.ipynb
-          FeatureEnginnering_model_training.ipynb            # Used to push data into MongoDB initially
-      
-      artifact/                # Auto-created when pipeline runs (gitignored)
-      logs/                    # Log files (gitignored)
-      demo.py                  # Entry point to run the training pipeline
-      app.py                   # Flask/FastAPI app for prediction (coming soon)
-      requirements.txt
-      setup.py
+### 5 — View MLflow experiment dashboard
 
+```bash
+make mlflow
+# → http://localhost:5000
+```
 
+---
 
-Pipeline Steps
+## 🐳 Docker
 
-1. Data Ingestion
-- Connects to a MongoDB Atlas cluster
-- Pulls the visa dataset from the `visa_data` collection
-- Saves the raw data as a CSV in `artifact/data_ingestion/feature_store/`
-- Splits it into train (80%) and test (20%) sets
+```bash
+make docker-build   # builds usvisa-predictor:latest
+make docker-run     # runs on port 8000 with .env
+```
 
-2. Data Validation
-- Checks if all required columns are present in both train and test sets
-- Validates column count against `schema.yaml`
-- Runs **data drift detection** using Evidently — compares train and test distributions
-- Saves a drift report as a YAML file in `artifact/data_validation/drift_report/`
+Or manually:
+```bash
+docker build -t usvisa-predictor .
+docker run -p 8000:8000 --env-file .env usvisa-predictor
+```
 
-3. Data Transformation
-- Creates a new feature: `company_age = current_year - yr_of_estab`
-- Drops columns that aren't needed for training (`case_id`, `yr_of_estab`)
-- Applies preprocessing:
-  - **OneHotEncoder** for: `continent`, `unit_of_wage`, `region_of_employment`
-  - **OrdinalEncoder** for: `has_job_experience`, `requires_job_training`, `full_time_position`, `education_of_employee`
-  - **PowerTransformer** (Yeo-Johnson) for skewed columns: `no_of_employees`, `company_age`
-  - **StandardScaler** for numerical features
-- Handles class imbalance using **SMOTEENN** (combination of oversampling and cleaning)
-- Saves the preprocessor object and transformed numpy arrays to `artifact/data_transformation/`
+---
 
+## 🧪 Testing
 
+```bash
+make test    # runs pytest with coverage report
+make lint    # runs flake8
+```
 
-How to Run
+---
 
-Prerequisites
-- Python
-- Conda environment
-- MongoDB Atlas connection string in `.env` file
+## 🔁 CI/CD (GitHub Actions)
 
-Setup
+| Trigger | Jobs |
+|---|---|
+| Push / PR to `main` | Lint → Tests → Docker Build+Push |
+| Manual (`workflow_dispatch`) | + Full Training Pipeline |
 
-1. Clone the repo and go into the project folder
+**Required GitHub Secrets:**
+| Secret | Required |
+|---|---|
+| `DOCKERHUB_USERNAME` | For Docker push |
+| `DOCKERHUB_TOKEN` | For Docker push |
+| `MONGODB_CONNECTION_STRING` | For training job |
+| `MODEL_BUCKET_NAME` | Optional (S3 model registry) |
+| `AWS_ACCESS_KEY_ID` | Optional (S3) |
+| `AWS_SECRET_ACCESS_KEY` | Optional (S3) |
+| `AWS_DEFAULT_REGION` | Optional (S3) |
 
-2. Create and activate the conda environment:
+---
 
-conda activate USvisa
+## 📊 API Reference
 
+### `POST /api/v1/predict` (JSON)
+```json
+{
+  "continent": "Asia",
+  "education_of_employee": "Master's",
+  "has_job_experience": "Y",
+  "requires_job_training": "N",
+  "no_of_employees": 500,
+  "yr_of_estab": 1995,
+  "region_of_employment": "Northeast",
+  "prevailing_wage": 75000.0,
+  "unit_of_wage": "Year",
+  "full_time_position": "Y"
+}
+```
+**Response:**
+```json
+{
+  "prediction": "Certified",
+  "confidence": "high",
+  "model_loaded_from": "saved_models/model.pkl"
+}
+```
 
-3. Install dependencies:
+### `GET /health`
+```json
+{"status": "ok", "model": "loaded", "model_path": "saved_models/model.pkl"}
+```
 
-pip install -r requirements.txt
+---
 
+## 🗃️ Dataset Features
 
-4. Create a `.env` file in the root with your MongoDB connection:
+| Column | Type | Role |
+|---|---|---|
+| `continent` | category | OneHot encoded |
+| `education_of_employee` | category | Ordinal encoded |
+| `has_job_experience` | Y/N | Ordinal encoded |
+| `requires_job_training` | Y/N | Ordinal encoded |
+| `no_of_employees` | int | PowerTransform + Scale |
+| `yr_of_estab` | int | → `company_age` (engineered) |
+| `region_of_employment` | category | OneHot encoded |
+| `prevailing_wage` | float | StandardScaler |
+| `unit_of_wage` | category | OneHot encoded |
+| `full_time_position` | Y/N | Ordinal encoded |
+| `case_status` | **Target** | Certified=0 / Denied=1 |
 
-MONGODB_CONNECTION_STRING="your_mongodb_connection_string_here"
+---
 
+## 🛠️ Tech Stack
 
-5. Run the pipeline:
+| Category | Tool |
+|---|---|
+| Language | Python 3.10 |
+| ML | scikit-learn, XGBoost, CatBoost |
+| Imbalance | SMOTEENN (train-only) |
+| Drift Detection | Evidently ≥ 0.4 |
+| Experiment Tracking | MLflow |
+| Data Storage | MongoDB Atlas |
+| Serialization | dill |
+| Web API | FastAPI + Uvicorn |
+| Container | Docker |
+| CI/CD | GitHub Actions |
+| Environment | python-dotenv |
 
-python demo.py
+---
 
-
-The pipeline will create timestamped artifact folders under `artifact/` and log files under `logs/`.
-
-
-
-Tech Stack
-
-What Tool 
-
-Language - Python
-Data Storage  - MongoDB Atlas
-Data Validation - Evidently
-ML  Preprocessing - Scikit-learn, Imbalanced-learn 
-Imbalance Handling  - SMOTEENN 
-Environment  - Conda 
-Config Management  - YAML + Python dataclasses 
-Logging  - Python logging module 
-
-
-Dataset
-
-The dataset contains US visa application records with the following key columns:
-
-| Column | Description |
-|--------|-------------|
-| `case_id` | Unique ID for the application |
-| `continent` | Applicant's continent of origin |
-| `education_of_employee` | Highest education level |
-| `has_job_experience` | Y/N |
-| `requires_job_training` | Y/N |
-| `no_of_employees` | Company size |
-| `yr_of_estab` | Year company was established |
-| `region_of_employment` | US region |
-| `prevailing_wage` | Offered wage |
-| `unit_of_wage` | Hour / Year / Week / Month |
-| `full_time_position` | Y/N |
-| `case_status` | **Target** — Certified or Denied |
-
-
+*Built by Rajat Verma*

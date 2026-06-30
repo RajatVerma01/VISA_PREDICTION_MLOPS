@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>US Visa Approval Predictor</title>
+  <meta name="description" content="Predict whether a US visa application will be Certified or Denied using machine learning." />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f1a;
+      --surface: #131627;
+      --surface2: #1a1f35;
+      --border: rgba(99, 120, 255, 0.18);
+      --primary: #6378ff;
+      --primary-glow: rgba(99, 120, 255, 0.35);
+      --accent: #a78bfa;
+      --success: #22c55e;
+      --success-glow: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.3);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% -20%, rgba(99,120,255,0.15) 0%, transparent 70%);
+    }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      animation: fadeDown 0.6s ease both;
+    }
+    header .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(99,120,255,0.12);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+      margin-bottom: 0.6rem;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── TRAIN BUTTON ── */
+    .train-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 1.8rem;
+      padding: 0.5rem 1.2rem;
+      border-radius: 999px;
+      background: rgba(167,139,250,0.1);
+      border: 1px solid rgba(167,139,250,0.25);
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .train-link:hover { background: rgba(167,139,250,0.2); border-color: rgba(167,139,250,0.45); }
+
+    /* ── ALERTS ── */
+    .alert {
+      width: 100%;
+      max-width: 720px;
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      animation: fadeDown 0.4s ease both;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .alert-success {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.35);
+      color: #86efac;
+    }
+    .alert-error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.35);
+      color: #fca5a5;
+    }
+    .alert-train {
+      background: rgba(99,120,255,0.1);
+      border: 1px solid var(--border);
+      color: #a5b4fc;
+    }
+
+    /* ── RESULT CARD ── */
+    .result-card {
+      width: 100%;
+      max-width: 720px;
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      animation: pulse-in 0.5s ease both;
+    }
+    .result-card.certified {
+      background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05));
+      border: 1px solid rgba(34,197,94,0.4);
+      box-shadow: 0 0 30px var(--success-glow);
+    }
+    .result-card.denied {
+      background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.05));
+      border: 1px solid rgba(239,68,68,0.4);
+      box-shadow: 0 0 30px var(--danger-glow);
+    }
+    .result-card .verdict-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .result-card .verdict-label {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .result-card.certified .verdict-label { color: var(--success); }
+    .result-card.denied .verdict-label { color: var(--danger); }
+    .result-card .verdict-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem 2rem;
+      width: 100%;
+      max-width: 720px;
+      backdrop-filter: blur(12px);
+      animation: fadeUp 0.6s ease both 0.1s;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── GRID ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.1rem;
+    }
+    @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    input, select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.65rem 0.85rem;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      padding-right: 2.2rem;
+    }
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+    input::placeholder { color: #4b5563; }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1.5rem 0;
+    }
+
+    /* ── SUBMIT ── */
+    .btn-predict {
+      width: 100%;
+      padding: 0.85rem;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border: none;
+      color: #fff;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px var(--primary-glow);
+      margin-top: 0.25rem;
+    }
+    .btn-predict:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 8px 28px var(--primary-glow); }
+    .btn-predict:active { transform: translateY(0); }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 3rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes pulse-in { 0% { opacity:0; transform:scale(0.96); } 100% { opacity:1; transform:scale(1); } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">🇺🇸 MLOps Project</div>
+    <h1>US Visa Approval Predictor</h1>
+    <p>Enter the applicant and employer details below to predict if the visa will be <strong>Certified</strong> or <strong>Denied</strong>.</p>
+  </header>
+
+  <!-- Error -->
+  {% if error %}
+  <div class="alert alert-error" id="error-alert">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <!-- Result -->
+  {% if result %}
+    {% if result == "Certified" %}
+    <div class="result-card certified" id="result-card">
+      <div class="verdict-icon">✅</div>
+      <div class="verdict-label">CERTIFIED</div>
+      <div class="verdict-sub">The visa application is likely to be approved.</div>
+    </div>
+    {% else %}
+    <div class="result-card denied" id="result-card">
+      <div class="verdict-icon">❌</div>
+      <div class="verdict-label">DENIED</div>
+      <div class="verdict-sub">The visa application is likely to be rejected.</div>
+    </div>
+    {% endif %}
+  {% endif %}
+
+  <!-- Form -->
+  <div class="card">
+    <div class="card-title">Applicant &amp; Employer Details</div>
+    <form method="POST" action="/predict" id="predict-form">
+
+      <div class="form-grid">
+
+        <!-- Continent -->
+        <div class="form-group">
+          <label for="continent">Continent</label>
+          <select name="continent" id="continent" required>
+            <option value="" disabled selected>Select continent</option>
+            <option>Asia</option>
+            <option>Europe</option>
+            <option>North America</option>
+            <option>South America</option>
+            <option>Africa</option>
+            <option>Oceania</option>
+          </select>
+        </div>
+
+        <!-- Education -->
+        <div class="form-group">
+          <label for="education_of_employee">Education Level</label>
+          <select name="education_of_employee" id="education_of_employee" required>
+            <option value="" disabled selected>Select education</option>
+            <option>High School</option>
+            <option>Bachelor's</option>
+            <option>Master's</option>
+            <option>Doctorate</option>
+          </select>
+        </div>
+
+        <!-- Has Job Experience -->
+        <div class="form-group">
+          <label for="has_job_experience">Has Job Experience?</label>
+          <select name="has_job_experience" id="has_job_experience" required>
+            <option value="" disabled selected>Select</option>
+            <option value="Y">Yes</option>
+            <option value="N">No</option>
+          </select>
+        </div>
+
+        <!-- Requires Job Training -->
+        <div class="form-group">
+          <label for="requires_job_training">Requires Job Training?</label>
+          <select name="requires_job_training" id="requires_job_training" required>
+            <option value="" disabled selected>Select</option>
+            <option value="Y">Yes</option>
+            <option value="N">No</option>
+          </select>
+        </div>
+
+        <!-- No of Employees -->
+        <div class="form-group">
+          <label for="no_of_employees">No. of Employees</label>
+          <input type="number" name="no_of_employees" id="no_of_employees" placeholder="e.g. 500" min="1" required />
+        </div>
+
+        <!-- Year of Establishment -->
+        <div class="form-group">
+          <label for="yr_of_estab">Year of Establishment</label>
+          <input type="number" name="yr_of_estab" id="yr_of_estab" placeholder="e.g. 1995" min="1800" max="2025" required />
+        </div>
+
+        <!-- Region of Employment -->
+        <div class="form-group">
+          <label for="region_of_employment">Region of Employment</label>
+          <select name="region_of_employment" id="region_of_employment" required>
+            <option value="" disabled selected>Select region</option>
+            <option>Northeast</option>
+            <option>South</option>
+            <option>West</option>
+            <option>Midwest</option>
+            <option>Island</option>
+          </select>
+        </div>
+
+        <!-- Unit of Wage -->
+        <div class="form-group">
+          <label for="unit_of_wage">Wage Unit</label>
+          <select name="unit_of_wage" id="unit_of_wage" required>
+            <option value="" disabled selected>Select unit</option>
+            <option>Hour</option>
+            <option>Week</option>
+            <option>Month</option>
+            <option>Year</option>
+          </select>
+        </div>
+
+        <!-- Prevailing Wage -->
+        <div class="form-group">
+          <label for="prevailing_wage">Prevailing Wage ($)</label>
+          <input type="number" name="prevailing_wage" id="prevailing_wage" placeholder="e.g. 75000" min="0" step="0.01" required />
+        </div>
+
+        <!-- Full Time Position -->
+        <div class="form-group">
+          <label for="full_time_position">Full Time Position?</label>
+          <select name="full_time_position" id="full_time_position" required>
+            <option value="" disabled selected>Select</option>
+            <option value="Y">Yes</option>
+            <option value="N">No</option>
+          </select>
+        </div>
+
+      </div><!-- /form-grid -->
+
+      <div class="divider"></div>
+      <button type="submit" class="btn-predict" id="submit-btn">🔍 Predict Visa Outcome</button>
+    </form>
+  </div>
+
+  <footer>US Visa Prediction · MLOps Project by Rajat Verma · Model: KNeighbors / RandomForest / GradientBoosting</footer>
+
+  <script>
+    // Prevent form resubmission on page refresh (changes URL back to /)
+    if (window.history.replaceState) {
+      window.history.replaceState(null, null, "/");
+    }
+
+    // Show loading state on form submit
+    document.getElementById('predict-form').addEventListener('submit', function() {
+      const btn = document.getElementById('submit-btn');
+      btn.textContent = '⏳ Predicting...';
+      btn.disabled = true;
+    });
+  </script>
+</body>
+</html>

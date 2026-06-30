@@ -74,3 +74,13 @@ coverage.xml
 Thumbs.db
 
 visa_project_mlops.egg-info
+saved_models/
+
+# MLflow
+mlruns/
+
+DEPLOY_TO_AWS.md
+DOCKER_SETUP.md
+
+mlflow.db
+

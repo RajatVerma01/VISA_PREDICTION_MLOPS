@@ -2,7 +2,8 @@ import sys
 
 import numpy as np
 import pandas as pd
-from imblearn.combine import SMOTEENN
+pd.set_option('future.no_silent_downcasting', True)
+from imblearn.over_sampling import SMOTE
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, OrdinalEncoder, PowerTransformer
 from sklearn.compose import ColumnTransformer
@@ -82,7 +83,7 @@ class DataTransformation:
 
                 target_feature_train_df = target_feature_train_df.replace(
                     TargetValueMapping()._asdict()
-                ).astype(int)
+                ).infer_objects(copy=False).astype(int)
 
                 input_feature_test_df = test_df.drop(columns=[TARGET_COLUMN])
                 target_feature_test_df = test_df[TARGET_COLUMN]
@@ -92,24 +93,25 @@ class DataTransformation:
 
                 target_feature_test_df = target_feature_test_df.replace(
                     TargetValueMapping()._asdict()
-                ).astype(int)
+                ).infer_objects(copy=False).astype(int)
 
                 logging.info("Applying preprocessing object on training and testing dataframe")
                 input_feature_train_arr = preprocessor.fit_transform(input_feature_train_df)
                 input_feature_test_arr = preprocessor.transform(input_feature_test_df)
 
-                logging.info("Applying SMOTEENN on Training dataset")
-                smt = SMOTEENN(sampling_strategy="minority")
+                logging.info("Applying pure SMOTE on Training dataset only")
+                smt = SMOTE(sampling_strategy="minority", random_state=42)
 
                 input_feature_train_final, target_feature_train_final = smt.fit_resample(
                     input_feature_train_arr, target_feature_train_df
                 )
-                logging.info("Applied SMOTEENN on training dataset")
+                logging.info("Applied pure SMOTE on training dataset")
 
-                input_feature_test_final, target_feature_test_final = smt.fit_resample(
-                    input_feature_test_arr, target_feature_test_df
-                )
-                logging.info("Applied SMOTEENN on testing dataset")
+                # ⚠️ Do NOT resample the test set — that would be data leakage.
+                # The test set must reflect the true (imbalanced) real-world distribution.
+                input_feature_test_final = input_feature_test_arr
+                target_feature_test_final = target_feature_test_df
+                logging.info("Test dataset kept as-is (no resampling applied)")
 
                 train_arr = np.c_[input_feature_train_final, np.array(target_feature_train_final)]
                 test_arr = np.c_[input_feature_test_final, np.array(target_feature_test_final)]

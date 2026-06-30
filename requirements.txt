@@ -1,26 +1,36 @@
-ipykernel
+# ── Core Data ────────────────────────────────────────────────────
 pandas
 numpy<2.0
-matplotlib
-plotly
-seaborn
-scipy
 scikit-learn
 imblearn
 xgboost
 catboost
+
+# ── Database ─────────────────────────────────────────────────────
 pymongo
-from_root
-evidently==0.2.8
-pydantic<2
+certifi
+
+# ── MLOps ────────────────────────────────────────────────────────
+evidently>=0.4.30,<0.5.0
+mlflow>=2.0,<4.0
 dill
 PyYAML
-neuro_mf
-boto3
-mypy-boto3-s3
-botocore
+from_root
+
+# ── Web Serving ──────────────────────────────────────────────────
 fastapi
 uvicorn
 jinja2
 python-multipart
+pydantic
+
+# ── Cloud / Storage ──────────────────────────────────────────────
+boto3
+botocore
+mypy-boto3-s3
+
+# ── Environment ──────────────────────────────────────────────────
+python-dotenv
+
+# ── Package itself ───────────────────────────────────────────────
 -e .

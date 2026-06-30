@@ -55,3 +55,42 @@ class DataTransformationConfig:
         DATA_TRANSFORMATION_TRANSFORMED_OBJECT_DIR,
         PREPROCSSING_OBJECT_FILE_NAME
     )
+
+
+@dataclass
+class ModelTrainerConfig:
+    model_trainer_dir: str = os.path.join(
+        training_pipeline_config.artifact_dir, MODEL_TRAINER_DIR_NAME
+    )
+    trained_model_file_path: str = os.path.join(
+        training_pipeline_config.artifact_dir,
+        MODEL_TRAINER_DIR_NAME,
+        MODEL_TRAINER_TRAINED_MODEL_DIR,
+        MODEL_TRAINER_TRAINED_MODEL_NAME,
+    )
+    expected_accuracy: float = MODEL_TRAINER_EXPECTED_SCORE
+
+
+@dataclass
+class ModelEvaluationConfig:
+    model_evaluation_dir: str = os.path.join(
+        training_pipeline_config.artifact_dir, MODEL_EVALUATION_DIR_NAME
+    )
+    report_file_path: str = os.path.join(
+        training_pipeline_config.artifact_dir,
+        MODEL_EVALUATION_DIR_NAME,
+        MODEL_EVALUATION_REPORT_NAME,
+    )
+    changed_threshold_score: float = MODEL_EVALUATION_CHANGED_THRESHOLD_SCORE
+
+
+@dataclass
+class ModelPusherConfig:
+    model_pusher_dir: str = os.path.join(
+        training_pipeline_config.artifact_dir, MODEL_PUSHER_DIR_NAME
+    )
+    # Stable local path — always written when a model is accepted
+    saved_model_path: str = os.path.join(SAVED_MODEL_DIR, MODEL_FILE_NAME)
+    # S3 settings — read from env vars (optional; S3 push is skipped if not set)
+    bucket_name: str = os.getenv(MODEL_BUCKET_NAME, "")
+    s3_model_key: str = MODEL_PUSHER_S3_KEY
