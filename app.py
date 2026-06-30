@@ -106,7 +106,7 @@ def _model_path() -> str:
 async def home(request: Request):
     """Render the main prediction form."""
     return templates.TemplateResponse(request=request, name="index.html", context={"request": request, "result": None, "error": None}
-    )
+                                      )
 
 
 @app.post("/predict", response_class=HTMLResponse, tags=["UI"])
@@ -141,19 +141,19 @@ async def predict_form(
         result = pipeline.predict(input_data)
         logging.info(f"Prediction served via form: {result}")
         return templates.TemplateResponse(request=request, name="index.html", context={"request": request, "result": result, "error": None}
-        )
+                                          )
     except FileNotFoundError as e:
         logging.error(str(e))
         return templates.TemplateResponse(request=request, name="index.html", context={
-                "request": request, "result": None,
-                "error": "No trained model found. Please run the training pipeline first (GET /train)."
-            }
+            "request": request, "result": None,
+            "error": "No trained model found. Please run the training pipeline first (GET /train)."
+        }
         )
     except Exception as e:
         logging.error(f"Form prediction error: {e}")
         return templates.TemplateResponse(request=request, name="index.html", context={"request": request, "result": None,
-                "error": f"Prediction failed: {e}"}
-        )
+                                                                                       "error": f"Prediction failed: {e}"}
+                                          )
 
 
 @app.get("/train", response_class=HTMLResponse, tags=["UI"])
@@ -164,16 +164,16 @@ async def train(request: Request):
         pipeline = TrainPipeline()
         pipeline.run_pipeline()
         return templates.TemplateResponse(request=request, name="index.html", context={
-                "request": request, "result": None, "error": None,
-                "train_msg": "✅ Training pipeline completed successfully!"
-            }
+            "request": request, "result": None, "error": None,
+            "train_msg": "✅ Training pipeline completed successfully!"
+        }
         )
     except Exception as e:
         logging.error(f"Training error: {e}")
         return templates.TemplateResponse(request=request, name="index.html", context={
-                "request": request, "result": None,
-                "error": f"Training failed: {str(e)}", "train_msg": None
-            }
+            "request": request, "result": None,
+            "error": f"Training failed: {str(e)}", "train_msg": None
+        }
         )
 
 
