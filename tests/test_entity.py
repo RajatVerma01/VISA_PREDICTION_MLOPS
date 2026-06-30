@@ -85,7 +85,8 @@ class TestUSvisaInputData:
 
 class TestArtifactDataclasses:
     def test_data_ingestion_artifact(self):
-        a = DataIngestionArtifact(trained_file_path="train.csv", test_file_path="test.csv")
+        a = DataIngestionArtifact(
+            trained_file_path="train.csv", test_file_path="test.csv")
         assert a.trained_file_path == "train.csv"
 
     def test_model_pusher_artifact_defaults(self):

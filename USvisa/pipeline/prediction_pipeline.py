@@ -60,18 +60,20 @@ class PredictionPipeline:
             if os.path.exists(stable_path):
                 logging.info(f"Loading model from stable path: {stable_path}")
                 return load_object(file_path=stable_path)
-            
+
             # ── S3 Fallback (Docker): Download from AWS if not local ────────
             bucket_name = os.getenv("MODEL_BUCKET_NAME")
             if bucket_name:
-                logging.info(f"Local model not found. Fetching from S3 bucket: {bucket_name}")
+                logging.info(
+                    f"Local model not found. Fetching from S3 bucket: {bucket_name}")
                 import boto3
                 s3_key = "model-registry/model.pkl"
                 os.makedirs(os.path.dirname(stable_path), exist_ok=True)
                 s3_client = boto3.client("s3")
                 try:
                     s3_client.download_file(bucket_name, s3_key, stable_path)
-                    logging.info(f"Successfully downloaded model from S3 to {stable_path}")
+                    logging.info(
+                        f"Successfully downloaded model from S3 to {stable_path}")
                     return load_object(file_path=stable_path)
                 except Exception as e:
                     logging.warning(f"Failed to download from S3: {e}")
@@ -105,7 +107,8 @@ class PredictionPipeline:
         """
         try:
             df = input_data.as_dataframe()
-            logging.info(f"Running prediction on input: {df.to_dict(orient='records')}")
+            logging.info(
+                f"Running prediction on input: {df.to_dict(orient='records')}")
             raw_prediction = self.model.predict(df)
             label_index = int(raw_prediction[0])
             label = TargetValueMapping().reverse_mapping().get(label_index, "Unknown")

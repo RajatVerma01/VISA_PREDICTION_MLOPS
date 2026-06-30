@@ -26,7 +26,8 @@ class DataValidation:
 
     def validate_number_of_columns(self, dataframe: DataFrame) -> bool:
         try:
-            status = len(dataframe.columns) == len(self._schema_config["columns"])
+            status = len(dataframe.columns) == len(
+                self._schema_config["columns"])
             logging.info(f"Is required column present: [{status}]")
             return status
         except Exception as e:
@@ -42,13 +43,15 @@ class DataValidation:
                 if column not in dataframe_columns:
                     missing_numerical_columns.append(column)
             if len(missing_numerical_columns) > 0:
-                logging.info(f"Missing numerical column: {missing_numerical_columns}")
+                logging.info(
+                    f"Missing numerical column: {missing_numerical_columns}")
 
             for column in self._schema_config["categorical_columns"]:
                 if column not in dataframe_columns:
                     missing_categorical_columns.append(column)
             if len(missing_categorical_columns) > 0:
-                logging.info(f"Missing categorical column: {missing_categorical_columns}")
+                logging.info(
+                    f"Missing categorical column: {missing_categorical_columns}")
 
             return False if len(missing_categorical_columns) > 0 or len(missing_numerical_columns) > 0 else True
         except Exception as e:
@@ -68,7 +71,8 @@ class DataValidation:
 
             json_report = json.loads(report.json())
 
-            write_yaml_file(file_path=self.data_validation_config.drift_report_file_path, content=json_report)
+            write_yaml_file(
+                file_path=self.data_validation_config.drift_report_file_path, content=json_report)
 
             # Navigate the new evidently report schema to find drift status
             metrics = json_report.get("metrics", [])
@@ -78,7 +82,8 @@ class DataValidation:
             )
 
             if drift_metric is None:
-                logging.warning("DatasetDriftMetric not found in report. Assuming no drift.")
+                logging.warning(
+                    "DatasetDriftMetric not found in report. Assuming no drift.")
                 return False
 
             n_features = drift_metric["result"]["number_of_columns"]
@@ -95,17 +100,21 @@ class DataValidation:
             validation_error_msg = ""
             logging.info("Starting data validation")
             train_df, test_df = (
-                DataValidation.read_data(file_path=self.data_ingestion_artifact.trained_file_path),
-                DataValidation.read_data(file_path=self.data_ingestion_artifact.test_file_path)
+                DataValidation.read_data(
+                    file_path=self.data_ingestion_artifact.trained_file_path),
+                DataValidation.read_data(
+                    file_path=self.data_ingestion_artifact.test_file_path)
             )
 
             status = self.validate_number_of_columns(dataframe=train_df)
-            logging.info(f"All required columns present in training dataframe: {status}")
+            logging.info(
+                f"All required columns present in training dataframe: {status}")
             if not status:
                 validation_error_msg += "Columns are missing in training dataframe."
 
             status = self.validate_number_of_columns(dataframe=test_df)
-            logging.info(f"All required columns present in testing dataframe: {status}")
+            logging.info(
+                f"All required columns present in testing dataframe: {status}")
             if not status:
                 validation_error_msg += "Columns are missing in test dataframe."
 
@@ -134,7 +143,8 @@ class DataValidation:
                 message=validation_error_msg,
                 drift_report_file_path=self.data_validation_config.drift_report_file_path
             )
-            logging.info(f"Data validation artifact: {data_validation_artifact}")
+            logging.info(
+                f"Data validation artifact: {data_validation_artifact}")
             return data_validation_artifact
         except Exception as e:
             raise USvisaException(e, sys) from e

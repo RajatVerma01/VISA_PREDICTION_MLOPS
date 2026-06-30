@@ -29,7 +29,8 @@ class DataIngestion:
             feature_store_file_path = self.data_ingestion_config.feature_store_file_path
             dir_path = os.path.dirname(feature_store_file_path)
             os.makedirs(dir_path, exist_ok=True)
-            logging.info(f"Saving exported data into feature store file path: {feature_store_file_path}")
+            logging.info(
+                f"Saving exported data into feature store file path: {feature_store_file_path}")
             dataframe.to_csv(feature_store_file_path, index=False, header=True)
             return dataframe
         except Exception as e:
@@ -41,10 +42,13 @@ class DataIngestion:
                 dataframe, test_size=self.data_ingestion_config.train_test_split_ratio
             )
             logging.info("Performed train test split on the dataframe")
-            dir_path = os.path.dirname(self.data_ingestion_config.training_file_path)
+            dir_path = os.path.dirname(
+                self.data_ingestion_config.training_file_path)
             os.makedirs(dir_path, exist_ok=True)
-            train_set.to_csv(self.data_ingestion_config.training_file_path, index=False, header=True)
-            test_set.to_csv(self.data_ingestion_config.testing_file_path, index=False, header=True)
+            train_set.to_csv(
+                self.data_ingestion_config.training_file_path, index=False, header=True)
+            test_set.to_csv(
+                self.data_ingestion_config.testing_file_path, index=False, header=True)
             logging.info("Exported train and test file path.")
         except Exception as e:
             raise USvisaException(e, sys) from e

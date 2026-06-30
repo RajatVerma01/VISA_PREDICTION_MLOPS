@@ -4,14 +4,15 @@ from USvisa.exception import USvisaException
 from USvisa.logger import logging
 
 import os
-from USvisa.constants import DATABASE_NAME, MONGODB_CONNECTION_STRING
+from USvisa.constants import DATABASE_NAME
 import pymongo
 import certifi
 
 ca = certifi.where()
 
+
 class MongoDBClient:
-    
+
     client = None
 
     def __init__(self, database_name=DATABASE_NAME) -> None:
@@ -19,11 +20,12 @@ class MongoDBClient:
             if MongoDBClient.client is None:
                 mongo_db_url = os.getenv("MONGODB_CONNECTION_STRING")
                 if mongo_db_url is None:
-                    raise Exception(f"Environment key: is not set.")
-                MongoDBClient.client = pymongo.MongoClient(mongo_db_url, tlsCAFile=ca)
+                    raise Exception("Environment key: is not set.")
+                MongoDBClient.client = pymongo.MongoClient(
+                    mongo_db_url, tlsCAFile=ca)
             self.client = MongoDBClient.client
             self.database = self.client[database_name]
             self.database_name = database_name
             logging.info("MongoDB connection succesfull")
         except Exception as e:
-            raise USvisaException(e,sys)
+            raise USvisaException(e, sys)

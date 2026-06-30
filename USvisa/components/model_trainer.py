@@ -1,5 +1,4 @@
 import sys
-import os
 from typing import Tuple
 
 import mlflow
@@ -86,26 +85,29 @@ class ModelTrainer:
                         model.fit(x_train, y_train)
                         if hasattr(model, "predict_proba"):
                             y_prob = model.predict_proba(x_test)[:, 1]
-                            
+
                             # Find optimal threshold to maximize F1
                             best_threshold_for_model = 0.5
                             best_f1_for_model = -1.0
-                            
+
                             for thresh in [0.5]:
                                 temp_pred = np.where(y_prob >= thresh, 1, 0)
                                 temp_f1 = f1_score(y_test, temp_pred)
                                 if temp_f1 > best_f1_for_model:
                                     best_f1_for_model = temp_f1
                                     best_threshold_for_model = thresh
-                            
-                            y_pred = np.where(y_prob >= best_threshold_for_model, 1, 0)
-                            logging.info(f"Optimal threshold for {name} found: {best_threshold_for_model:.2f}")
+
+                            y_pred = np.where(
+                                y_prob >= best_threshold_for_model, 1, 0)
+                            logging.info(
+                                f"Optimal threshold for {name} found: {best_threshold_for_model:.2f}")
                         else:
                             y_pred = model.predict(x_test)
                             y_prob = y_pred.astype(float)
                             best_threshold_for_model = 0.5
 
-                        metric = self.get_classification_metric(y_test, y_pred, y_prob)
+                        metric = self.get_classification_metric(
+                            y_test, y_pred, y_prob)
                         acc = accuracy_score(y_test, y_pred)
 
                         logging.info(
@@ -117,15 +119,22 @@ class ModelTrainer:
                         # Log to MLflow
                         try:
                             mlflow.log_param("model_type", name)
-                            mlflow.log_metric("optimal_threshold", float(best_threshold_for_model))
+                            mlflow.log_metric("optimal_threshold", float(
+                                best_threshold_for_model))
                             mlflow.log_metric("accuracy", round(float(acc), 4))
-                            mlflow.log_metric("f1_score", round(float(metric.f1_score), 4))
-                            mlflow.log_metric("precision", round(float(metric.precision_score), 4))
-                            mlflow.log_metric("recall", round(float(metric.recall_score), 4))
-                            mlflow.log_metric("roc_auc", round(float(metric.roc_auc_score), 4))
-                            mlflow.sklearn.log_model(model, name=f"{name}_model")
+                            mlflow.log_metric("f1_score", round(
+                                float(metric.f1_score), 4))
+                            mlflow.log_metric("precision", round(
+                                float(metric.precision_score), 4))
+                            mlflow.log_metric("recall", round(
+                                float(metric.recall_score), 4))
+                            mlflow.log_metric("roc_auc", round(
+                                float(metric.roc_auc_score), 4))
+                            mlflow.sklearn.log_model(
+                                model, name=f"{name}_model")
                         except Exception as mlflow_err:
-                            logging.warning(f"MLflow logging failed for {name}: {mlflow_err}")
+                            logging.warning(
+                                f"MLflow logging failed for {name}: {mlflow_err}")
 
                         if metric.f1_score > best_f1:
                             best_f1 = metric.f1_score
@@ -138,9 +147,11 @@ class ModelTrainer:
                     mlflow.log_param("best_model", type(best_model).__name__)
                     mlflow.log_metric("best_f1", round(float(best_f1), 4))
                 except Exception as mlflow_err:
-                    logging.warning(f"MLflow parent run logging failed: {mlflow_err}")
+                    logging.warning(
+                        f"MLflow parent run logging failed: {mlflow_err}")
 
-            logging.info(f"Best model selected: {type(best_model).__name__} with F1={best_f1:.4f} and threshold={overall_best_threshold:.2f}")
+            logging.info(
+                f"Best model selected: {type(best_model).__name__} with F1={best_f1:.4f} and threshold={overall_best_threshold:.2f}")
             return best_model, best_metric, overall_best_threshold
 
         except Exception as e:
@@ -159,7 +170,8 @@ class ModelTrainer:
             x_train, y_train = train_arr[:, :-1], train_arr[:, -1]
             x_test, y_test = test_arr[:, :-1], test_arr[:, -1]
 
-            best_model, metric_artifact, best_thresh = self.find_best_model(x_train, y_train, x_test, y_test)
+            best_model, metric_artifact, best_thresh = self.find_best_model(
+                x_train, y_train, x_test, y_test)
 
             if metric_artifact.f1_score < self.model_trainer_config.expected_accuracy:
                 raise Exception(
@@ -179,7 +191,8 @@ class ModelTrainer:
             )
 
             logging.info(f"Saving USvisaModel: {type(best_model).__name__}")
-            save_object(self.model_trainer_config.trained_model_file_path, usvisa_model)
+            save_object(
+                self.model_trainer_config.trained_model_file_path, usvisa_model)
 
             model_trainer_artifact = ModelTrainerArtifact(
                 trained_model_file_path=self.model_trainer_config.trained_model_file_path,

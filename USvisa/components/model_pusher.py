@@ -57,7 +57,6 @@ class ModelPusher:
                 return None
 
             import boto3
-            from botocore.exceptions import BotoCoreError, ClientError
 
             s3_key = self.model_pusher_config.s3_model_key
             s3_client = boto3.client("s3")

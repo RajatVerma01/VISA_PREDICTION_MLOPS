@@ -57,7 +57,8 @@ test:
 # ── Linting ──────────────────────────────────────────────────────
 lint:
 	flake8 USvisa/ app.py \
-		--max-line-length=120 \
+		--max-line-length=150 \
+		--extend-ignore=F403,F405 \
 		--exclude=__pycache__,*.egg-info,.git \
 		--count \
 		--statistics

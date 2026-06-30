@@ -44,9 +44,11 @@ class ModelEvaluation:
         try:
             best_model_path = self._get_best_model_path()
             if not os.path.exists(best_model_path):
-                logging.info("No previous best model found. This is the first run.")
+                logging.info(
+                    "No previous best model found. This is the first run.")
                 return None
-            logging.info(f"Loading existing best model from: {best_model_path}")
+            logging.info(
+                f"Loading existing best model from: {best_model_path}")
             return load_object(file_path=best_model_path)
         except Exception as e:
             raise USvisaException(e, sys) from e
@@ -60,7 +62,8 @@ class ModelEvaluation:
             drop_cols = self._schema_config["drop_columns"]
             input_df = drop_columns(df=input_df, cols=drop_cols)
 
-            target_series = target_series.replace(TargetValueMapping()._asdict()).astype(int)
+            target_series = target_series.replace(
+                TargetValueMapping()._asdict()).astype(int)
             return input_df, target_series
         except Exception as e:
             raise USvisaException(e, sys) from e
@@ -72,7 +75,8 @@ class ModelEvaluation:
 
             if hasattr(model.trained_model_object, "predict_proba"):
                 transformed = model.preprocessing_object.transform(input_df)
-                y_prob = model.trained_model_object.predict_proba(transformed)[:, 1]
+                y_prob = model.trained_model_object.predict_proba(transformed)[
+                    :, 1]
             else:
                 y_prob = y_pred.astype(float)
 
@@ -104,7 +108,8 @@ class ModelEvaluation:
 
             if best_model is not None:
                 best_model_path = self._get_best_model_path()
-                best_model_metric = self._get_metric_for_model(best_model, test_df)
+                best_model_metric = self._get_metric_for_model(
+                    best_model, test_df)
                 best_model_f1 = best_model_metric.f1_score
 
                 improved_accuracy = train_model_f1 - best_model_f1
@@ -158,8 +163,10 @@ class ModelEvaluation:
                 content=report,
                 replace=True,
             )
-            logging.info(f"Evaluation report saved to: {self.model_evaluation_config.report_file_path}")
-            logging.info(f"Model evaluation artifact: {model_evaluation_artifact}")
+            logging.info(
+                f"Evaluation report saved to: {self.model_evaluation_config.report_file_path}")
+            logging.info(
+                f"Model evaluation artifact: {model_evaluation_artifact}")
             return model_evaluation_artifact
 
         except Exception as e:

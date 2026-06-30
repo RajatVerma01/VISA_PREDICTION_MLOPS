@@ -9,27 +9,23 @@ Routes:
   GET  /monitor       → Evidently data drift report (HTML)
   POST /api/v1/predict → JSON prediction API (with Pydantic validation)
 """
+from USvisa.logger import logging
+from USvisa.constants import SAVED_MODEL_DIR, MODEL_FILE_NAME
+from USvisa.pipeline.training_pipeline import TrainPipeline
+from USvisa.pipeline.prediction_pipeline import PredictionPipeline, USvisaInputData
+from pydantic import BaseModel, Field, field_validator
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Request, Form, HTTPException
 import os
-import sys
 import glob
-import json
 from datetime import date
-from typing import Literal, Optional
+from typing import Literal
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, field_validator
-
-from USvisa.pipeline.prediction_pipeline import PredictionPipeline, USvisaInputData
-from USvisa.pipeline.training_pipeline import TrainPipeline
-from USvisa.constants import SAVED_MODEL_DIR, MODEL_FILE_NAME
-from USvisa.exception import USvisaException
-from USvisa.logger import logging
 
 # ── App setup ────────────────────────────────────────────────────
 app = FastAPI(
@@ -47,6 +43,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # ── Pydantic schema for JSON API ─────────────────────────────────
 CURRENT_YEAR = date.today().year
 
+
 class PredictRequest(BaseModel):
     """Input schema for the JSON prediction API endpoint."""
     continent: Literal["Asia", "Europe", "North America", "South America", "Africa", "Oceania"] = Field(
@@ -63,14 +60,16 @@ class PredictRequest(BaseModel):
         ..., example="Northeast"
     )
     prevailing_wage: float = Field(..., gt=0, example=75000.0)
-    unit_of_wage: Literal["Hour", "Week", "Month", "Year"] = Field(..., example="Year")
+    unit_of_wage: Literal["Hour", "Week", "Month",
+                          "Year"] = Field(..., example="Year")
     full_time_position: Literal["Y", "N"] = Field(..., example="Y")
 
     @field_validator("yr_of_estab")
     @classmethod
     def year_not_in_future(cls, v: int) -> int:
         if v > CURRENT_YEAR:
-            raise ValueError(f"yr_of_estab cannot be in the future (max {CURRENT_YEAR})")
+            raise ValueError(
+                f"yr_of_estab cannot be in the future (max {CURRENT_YEAR})")
         return v
 
     @field_validator("prevailing_wage")
@@ -93,7 +92,8 @@ def _model_path() -> str:
     if os.path.exists(stable):
         return stable
     candidates = sorted(glob.glob(
-        os.path.join("artifact", "*", "model_trainer", "trained_model", "model.pkl")
+        os.path.join("artifact", "*", "model_trainer",
+                     "trained_model", "model.pkl")
     ))
     return candidates[-1] if candidates else ""
 
@@ -159,7 +159,8 @@ async def predict_form(
         logging.error(f"Form prediction error: {e}")
         return templates.TemplateResponse(
             "index.html",
-            {"request": request, "result": None, "error": f"Prediction failed: {e}"}
+            {"request": request, "result": None,
+                "error": f"Prediction failed: {e}"}
         )
 
 
@@ -201,10 +202,12 @@ async def monitor(request: Request):
 
         # Find the most recent train/test CSVs from artifact runs
         train_csvs = sorted(glob.glob(
-            os.path.join("artifact", "*", "data_ingestion", "ingested", "train.csv")
+            os.path.join("artifact", "*", "data_ingestion",
+                         "ingested", "train.csv")
         ))
         test_csvs = sorted(glob.glob(
-            os.path.join("artifact", "*", "data_ingestion", "ingested", "test.csv")
+            os.path.join("artifact", "*", "data_ingestion",
+                         "ingested", "test.csv")
         ))
 
         if not train_csvs or not test_csvs:
@@ -294,4 +297,5 @@ async def predict_api(payload: PredictRequest):
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         logging.error(f"API prediction error: {e}")
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Prediction error: {str(e)}")

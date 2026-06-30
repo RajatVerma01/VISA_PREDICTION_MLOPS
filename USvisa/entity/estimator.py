@@ -8,7 +8,6 @@ from USvisa.exception import USvisaException
 from USvisa.logger import logging
 
 
-
 class TargetValueMapping:
     def __init__(self):
         self.Certified: int = 1
@@ -31,10 +30,12 @@ class USvisaModel:
     def predict(self, dataframe: DataFrame) -> DataFrame:
         try:
             logging.info("Transforming input features and running prediction")
-            transformed_feature = self.preprocessing_object.transform(dataframe)
-            
+            transformed_feature = self.preprocessing_object.transform(
+                dataframe)
+
             if hasattr(self.trained_model_object, "predict_proba"):
-                y_prob = self.trained_model_object.predict_proba(transformed_feature)[:, 1]
+                y_prob = self.trained_model_object.predict_proba(transformed_feature)[
+                    :, 1]
                 preds = np.where(y_prob >= self.threshold, 1, 0)
                 return preds
             else:

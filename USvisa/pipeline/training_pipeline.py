@@ -39,7 +39,8 @@ class TrainPipeline:
     def start_data_ingestion(self) -> DataIngestionArtifact:
         try:
             logging.info("Starting data ingestion")
-            data_ingestion = DataIngestion(data_ingestion_config=self.data_ingestion_config)
+            data_ingestion = DataIngestion(
+                data_ingestion_config=self.data_ingestion_config)
             data_ingestion_artifact = data_ingestion.initiate_data_ingestion()
             logging.info("Data ingestion completed")
             return data_ingestion_artifact
@@ -153,7 +154,8 @@ class TrainPipeline:
                     + (f" | S3: {model_pusher_artifact.s3_model_path}" if model_pusher_artifact.s3_model_path else "")
                 )
             else:
-                logging.info("New model was NOT accepted — existing model kept. Pusher skipped.")
+                logging.info(
+                    "New model was NOT accepted — existing model kept. Pusher skipped.")
 
         except Exception as e:
             raise USvisaException(e, sys)

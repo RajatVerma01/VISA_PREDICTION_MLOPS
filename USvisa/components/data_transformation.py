@@ -1,20 +1,19 @@
+from USvisa.entity.estimator import TargetValueMapping
+from USvisa.utils.main_utils import save_object, save_numpy_array_data, read_yaml_file, drop_columns
+from USvisa.logger import logging
+from USvisa.exception import USvisaException
+from USvisa.entity.artifact import DataTransformationArtifact, DataIngestionArtifact, DataValidationArtifact
+from USvisa.entity.config import DataTransformationConfig
+from USvisa.constants import TARGET_COLUMN, SCHEMA_FILE_PATH, CURRENT_YEAR
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, OrdinalEncoder, PowerTransformer
+from sklearn.pipeline import Pipeline
+from imblearn.over_sampling import SMOTE
 import sys
 
 import numpy as np
 import pandas as pd
 pd.set_option('future.no_silent_downcasting', True)
-from imblearn.over_sampling import SMOTE
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, OrdinalEncoder, PowerTransformer
-from sklearn.compose import ColumnTransformer
-
-from USvisa.constants import TARGET_COLUMN, SCHEMA_FILE_PATH, CURRENT_YEAR
-from USvisa.entity.config import DataTransformationConfig
-from USvisa.entity.artifact import DataTransformationArtifact, DataIngestionArtifact, DataValidationArtifact
-from USvisa.exception import USvisaException
-from USvisa.logger import logging
-from USvisa.utils.main_utils import save_object, save_numpy_array_data, read_yaml_file, drop_columns
-from USvisa.entity.estimator import TargetValueMapping
 
 
 class DataTransformation:
@@ -70,16 +69,20 @@ class DataTransformation:
                 preprocessor = self.get_data_transformer_object()
                 logging.info("Got the preprocessor object")
 
-                train_df = DataTransformation.read_data(file_path=self.data_ingestion_artifact.trained_file_path)
-                test_df = DataTransformation.read_data(file_path=self.data_ingestion_artifact.test_file_path)
+                train_df = DataTransformation.read_data(
+                    file_path=self.data_ingestion_artifact.trained_file_path)
+                test_df = DataTransformation.read_data(
+                    file_path=self.data_ingestion_artifact.test_file_path)
 
                 input_feature_train_df = train_df.drop(columns=[TARGET_COLUMN])
                 target_feature_train_df = train_df[TARGET_COLUMN]
 
-                input_feature_train_df['company_age'] = CURRENT_YEAR - input_feature_train_df['yr_of_estab']
+                input_feature_train_df['company_age'] = CURRENT_YEAR - \
+                    input_feature_train_df['yr_of_estab']
 
                 drop_cols = self._schema_config['drop_columns']
-                input_feature_train_df = drop_columns(df=input_feature_train_df, cols=drop_cols)
+                input_feature_train_df = drop_columns(
+                    df=input_feature_train_df, cols=drop_cols)
 
                 target_feature_train_df = target_feature_train_df.replace(
                     TargetValueMapping()._asdict()
@@ -88,16 +91,21 @@ class DataTransformation:
                 input_feature_test_df = test_df.drop(columns=[TARGET_COLUMN])
                 target_feature_test_df = test_df[TARGET_COLUMN]
 
-                input_feature_test_df['company_age'] = CURRENT_YEAR - input_feature_test_df['yr_of_estab']
-                input_feature_test_df = drop_columns(df=input_feature_test_df, cols=drop_cols)
+                input_feature_test_df['company_age'] = CURRENT_YEAR - \
+                    input_feature_test_df['yr_of_estab']
+                input_feature_test_df = drop_columns(
+                    df=input_feature_test_df, cols=drop_cols)
 
                 target_feature_test_df = target_feature_test_df.replace(
                     TargetValueMapping()._asdict()
                 ).infer_objects(copy=False).astype(int)
 
-                logging.info("Applying preprocessing object on training and testing dataframe")
-                input_feature_train_arr = preprocessor.fit_transform(input_feature_train_df)
-                input_feature_test_arr = preprocessor.transform(input_feature_test_df)
+                logging.info(
+                    "Applying preprocessing object on training and testing dataframe")
+                input_feature_train_arr = preprocessor.fit_transform(
+                    input_feature_train_df)
+                input_feature_test_arr = preprocessor.transform(
+                    input_feature_test_df)
 
                 logging.info("Applying pure SMOTE on Training dataset only")
                 smt = SMOTE(sampling_strategy="minority", random_state=42)
@@ -113,12 +121,17 @@ class DataTransformation:
                 target_feature_test_final = target_feature_test_df
                 logging.info("Test dataset kept as-is (no resampling applied)")
 
-                train_arr = np.c_[input_feature_train_final, np.array(target_feature_train_final)]
-                test_arr = np.c_[input_feature_test_final, np.array(target_feature_test_final)]
+                train_arr = np.c_[input_feature_train_final,
+                                  np.array(target_feature_train_final)]
+                test_arr = np.c_[input_feature_test_final,
+                                 np.array(target_feature_test_final)]
 
-                save_object(self.data_transformation_config.transformed_object_file_path, preprocessor)
-                save_numpy_array_data(self.data_transformation_config.transformed_train_file_path, array=train_arr)
-                save_numpy_array_data(self.data_transformation_config.transformed_test_file_path, array=test_arr)
+                save_object(
+                    self.data_transformation_config.transformed_object_file_path, preprocessor)
+                save_numpy_array_data(
+                    self.data_transformation_config.transformed_train_file_path, array=train_arr)
+                save_numpy_array_data(
+                    self.data_transformation_config.transformed_test_file_path, array=test_arr)
 
                 logging.info("Saved the preprocessor object")
 
