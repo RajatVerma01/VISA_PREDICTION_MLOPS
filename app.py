@@ -11,7 +11,6 @@ Routes:
 """
 from USvisa.logger import logging
 from USvisa.constants import SAVED_MODEL_DIR, MODEL_FILE_NAME
-from USvisa.pipeline.training_pipeline import TrainPipeline
 from USvisa.pipeline.prediction_pipeline import PredictionPipeline, USvisaInputData
 from pydantic import BaseModel, Field, field_validator
 from fastapi.staticfiles import StaticFiles
@@ -161,6 +160,7 @@ async def train(request: Request):
     """Trigger the full 6-stage training pipeline."""
     try:
         logging.info("Training pipeline triggered via /train endpoint")
+        from USvisa.pipeline.training_pipeline import TrainPipeline
         pipeline = TrainPipeline()
         pipeline.run_pipeline()
         return templates.TemplateResponse(request=request, name="index.html", context={
