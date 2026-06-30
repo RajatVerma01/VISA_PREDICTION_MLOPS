@@ -21,9 +21,9 @@ WORKDIR /app
 
 # ── Install Python dependencies ───────────────────────────────────
 # Copy requirements first to leverage Docker layer caching
-COPY requirements.txt .
+COPY requirements-serve.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements-serve.txt
 
 # ── Copy application source ──────────────────────────────────────
 COPY . .
